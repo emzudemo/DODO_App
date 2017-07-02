@@ -13,6 +13,8 @@ public interface IDataItemCRUDOperationsAsync {
             public void process (T result);
         }
 
+        public void syncDataItems(CallbackFunction<Boolean> callback);
+
         // C
         public void createDataItem(DataItem item,CallbackFunction<DataItem> callback);
 

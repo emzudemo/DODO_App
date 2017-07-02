@@ -1,10 +1,16 @@
 package com.bonsai.maurice.dodo.model;
 
+import android.os.AsyncTask;
+import android.widget.TextView;
+
+import org.w3c.dom.Text;
+
 import java.io.IOException;
 import java.util.List;
 
 import okhttp3.internal.http.RetryAndFollowUpInterceptor;
 import retrofit2.Call;
+import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.Body;
@@ -97,4 +103,36 @@ public class RemoteDataItemCRUDOperationsImpl implements IDataItemCRUDOperations
             throw new RuntimeException(e);
         }
     }
+
+    @Override
+    public boolean deleteAllDataItems() {
+        List<DataItem> dataItems = this.readAllDataItems();
+
+        for(DataItem dataItem : dataItems) {
+            this.deleteDataItem(dataItem.getId());
+        }
+        return true;
+        //TODO In welchem Fall soll true zurück gegeben werden?
+        //TODO Error Handling
+    }
 }
+
+/*
+private class NetworkCall extends AsyncTask<Call, Void, String> {
+    @Override
+    protected String doInBackground(Call... params) {
+        try {
+            Call<List<DataItem>> call = params[0];
+            Response<List<DataItem>> response = call.execute();
+            return response.body().toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    @Override
+    protected void onPostExecute(String result) {
+
+    }
+}*/

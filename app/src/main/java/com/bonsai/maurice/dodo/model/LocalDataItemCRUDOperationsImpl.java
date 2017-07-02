@@ -24,16 +24,22 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
         db = context.openOrCreateDatabase("mydb.sqlite", Context.MODE_PRIVATE, null);
         if (db.getVersion() == 0) {
             db.setVersion(1);
-            db.execSQL("CREATE TABLE " + DATAITEMS + " (ID INTEGER PRIMARY KEY,NAME TEXT, DUEDATE INTEGER)");
+            db.execSQL("CREATE TABLE " + DATAITEMS + " (ID INTEGER PRIMARY KEY,NAME TEXT, DUEDATE INTEGER, DESCRIPTION TEXT, FAVOURITE INTEGER, DONE INTEGER)");
         }
     }
 
     @Override
     public DataItem createDataItem(DataItem item) {
 
+        int done = item.getDone() ? 1 : 0;
+        int favourite = item.getFavourite() ? 1 : 0;
+
         ContentValues values = new ContentValues();
         values.put("NAME",item.getName());
         values.put("DUEDATE",item.getDuedate());
+        values.put("DESCRIPTION", item.getDescription());
+        values.put("FAVOURITE", favourite);
+        values.put("DONE", done);
 
         long id = db.insert(DATAITEMS,null,values);
         item.setId(id);
@@ -45,7 +51,7 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
     public List<DataItem> readAllDataItems() {
         List<DataItem> items = new ArrayList<DataItem>();
 
-        Cursor cursor = db.query(DATAITEMS, new String[]{"ID","NAME","DUEDATE"},null,null,null,null,"ID");
+        Cursor cursor = db.query(DATAITEMS, new String[]{"ID","NAME","DUEDATE","DESCRIPTION","FAVOURITE","DONE"},null,null,null,null,"ID");
         if (cursor.getCount() > 0) {
             cursor.moveToFirst();
             boolean next = false;
@@ -56,10 +62,16 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
                 long id = cursor.getLong(cursor.getColumnIndex("ID"));
                 String name = cursor.getString(cursor.getColumnIndex("NAME"));
                 long duedate = cursor.getLong(cursor.getColumnIndex("DUEDATE"));
+                String description = cursor.getString(cursor.getColumnIndex("DESCRIPTION"));
+                int favourite = cursor.getInt(cursor.getColumnIndex("FAVOURITE"));
+                int done = cursor.getInt(cursor.getColumnIndex("DONE"));
 
                 item.setId(id);
                 item.setName(name);
                 item.setDuedate(duedate);
+                item.setDescription(description);
+                item.setFavourite(favourite == 1 ? true : false);
+                item.setDone(done == 1 ? true : false);
 
                 next = cursor.moveToNext();
             } while (next);
@@ -75,7 +87,20 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
 
     @Override
     public DataItem updateDataItem(long id, DataItem item) {
-        return null;
+
+        int done = item.getDone() ? 1 : 0;
+        int favourite = item.getFavourite() ? 1 : 0;
+
+        ContentValues values = new ContentValues();
+        values.put("ID",item.getId());
+        values.put("NAME", item.getName());
+        values.put("DUEDATE", item.getDuedate());
+        values.put("DESCRIPTION", item.getDescription());
+        values.put("FAVOURITE", favourite);
+        values.put("DONE", done);
+
+        db.update(DATAITEMS,values,"ID=?",new String[]{String.valueOf(id)});
+        return item;
     }
 
     @Override
@@ -90,6 +115,11 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
 
         return false;
 
+    }
+
+    @Override
+    public boolean deleteAllDataItems() {
+        return false;
     }
 
 }

@@ -88,5 +88,5 @@
         android:layout_alignLeft="@+id/textView_password"
         android:layout_alignStart="@+id/textView_password"
         android:layout_marginTop="60dp"
-        android:enabled="false"/>
+        android:enabled="true"/>
 </RelativeLayout>

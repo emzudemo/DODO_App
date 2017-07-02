@@ -84,7 +84,7 @@ public class DetailviewActivity extends AppCompatActivity {
 
         //Datepicker
         dateFormatter = new SimpleDateFormat("dd-MM-yyyy", Locale.GERMANY);
-        timeFormatter = new SimpleDateFormat("HH:MM", Locale.GERMANY);
+        timeFormatter = new SimpleDateFormat("HH:mm", Locale.GERMANY);
 
         //read out ui elements
         itemNameText = (TextView) findViewById(R.id.itemName);
@@ -141,6 +141,14 @@ public class DetailviewActivity extends AppCompatActivity {
             itemFavStat.setChecked(item.getFavourite());
             itemDoneStat.setChecked(item.getDone());
             update = true;
+        } else {
+            itemNameText.setText("No Name");
+            itemDescriptionText.setText("No description");
+            Calendar savedDate = Calendar.getInstance();
+            itemDuedateText.setText(dateFormatter.format(savedDate.getTime()));
+            itemDuetimeText.setText(timeFormatter.format(savedDate.getTime()));
+            itemFavStat.setChecked(false);
+            itemDoneStat.setChecked(false);
         }
 
         //prepare for user interaction

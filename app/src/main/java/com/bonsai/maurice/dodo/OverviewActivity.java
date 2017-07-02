@@ -3,8 +3,12 @@ package com.bonsai.maurice.dodo;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.icu.text.SimpleDateFormat;
 import android.os.AsyncTask;
+import android.os.Build;
+import android.support.annotation.BoolRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,6 +20,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -53,6 +58,8 @@ public class OverviewActivity extends AppCompatActivity  {
 
         public TextView itemNameView;
         public CheckBox itemDoneView;
+        public TextView itemDuedateView;
+        public CheckBox itemFavView;
 
     }
 
@@ -87,6 +94,7 @@ public class OverviewActivity extends AppCompatActivity  {
         //instantiate listview with adapter
         listViewAdapter = new ArrayAdapter<DataItem>(this,R.layout.itemview_overview, itemsList) {
 
+            @RequiresApi(api = Build.VERSION_CODES.N)
             @NonNull
             @Override
             public View getView(int position, View itemView, ViewGroup parent) {
@@ -102,11 +110,14 @@ public class OverviewActivity extends AppCompatActivity  {
                     TextView itemDuedateView = (TextView) itemView.findViewById(R.id.duedate);
                     //read out the checkbox
                     CheckBox itemDoneView = (CheckBox) itemView.findViewById(R.id.itemDone);
+                    CheckBox itemFavView = (CheckBox) itemView.findViewById(R.id.favStatus);
                     //create a new instance if the view holder
                     ItemViewHolder itemViewHolder = new ItemViewHolder();
                     //set the itemNameView attribute on view holder to text view
                     itemViewHolder.itemNameView = itemNameView;
                     itemViewHolder.itemDoneView = itemDoneView;
+                    itemViewHolder.itemDuedateView = itemDuedateView;
+                    itemViewHolder.itemFavView = itemFavView;
                     //set the view holder on the list item view
                     itemView.setTag(itemViewHolder);
                 }
@@ -117,17 +128,27 @@ public class OverviewActivity extends AppCompatActivity  {
                 final DataItem item = getItem(position);
                // Log.i(logger, "creating view for position " + position + " and item: " +  item);
 
+                SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+                String duedate = sdf.format(item.getDuedate());
+
                 viewHolder.itemNameView.setText(item.getName());
                 viewHolder.itemDoneView.setOnCheckedChangeListener(null);
-                viewHolder.itemDoneView.setChecked(item.getDuedate() > 0); // <- hier muss noch das richtige Feld abgefragt werden
+                viewHolder.itemDoneView.setChecked(item.getDone());
+                viewHolder.itemFavView.setVisibility(item.getFavourite() ? View.VISIBLE : View.INVISIBLE);
+                viewHolder.itemDuedateView.setText(duedate);
                 viewHolder.itemDoneView.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                     @Override
                     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                        Toast.makeText(OverviewActivity.this,item.getName() + " updated!",Toast.LENGTH_SHORT).show();
-                        if (isChecked) {
-                            item.setDuedate(1); // hier muss die Updatemethode rein
-                        }
+
+                        item.setDone(isChecked);
+                        crudOperations.updateDataItem(item.getId(),item,new IDataItemCRUDOperationsAsync.CallbackFunction<DataItem>(){
+                            @Override
+                            public void process(DataItem dataItem) {
+                                Toast.makeText(OverviewActivity.this,dataItem.getName() + " updated!",Toast.LENGTH_SHORT).show();
+                            }
+                        });
                     }
+
                 });
 
                 return itemView;
@@ -147,10 +168,24 @@ public class OverviewActivity extends AppCompatActivity  {
         });
 
 
+        progressDialog.show();
         crudOperations = ((DataItemApplication)getApplication()).getCRUDOperationsImpl(); //null;/*new SimpleDataItemCRUDOperationsImpl();*/ /*new LocalDataItemCRUDOperationsImpl(this);*/  /* new RemoteDataItemCRUDOperationsImpl(); */
 
-        readItemsAndFillListView();
+        crudOperations.syncDataItems(new IDataItemCRUDOperationsAsync.CallbackFunction<Boolean>() {
+            @Override
+            public void process(Boolean isOnline) {
+                readItemsAndFillListView();
+                if (!isOnline) {
+                    Toast.makeText(OverviewActivity.this, "You are offline!",Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+
     }
+
+
+
+
 
     private void readItemsAndFillListView() {
 
@@ -232,9 +267,9 @@ public class OverviewActivity extends AppCompatActivity  {
         crudOperations.updateDataItem(item.getId(), item, new IDataItemCRUDOperationsAsync.CallbackFunction<DataItem>() {
             @Override
             public void process(DataItem result) {
+                progressDialog.hide();
                 listViewAdapter.clear();
                 readItemsAndFillListView();
-                progressDialog.hide();
             }
         });
     }
@@ -277,7 +312,7 @@ public class OverviewActivity extends AppCompatActivity  {
         Collections.sort(itemsList, new Comparator<DataItem>() {
             @Override
             public int compare(DataItem o1, DataItem o2) {
-                return o1.getName().compareTo(o2.getName());
+                return o1.getName().compareToIgnoreCase(o2.getName());
             }
         });
         this.listViewAdapter.notifyDataSetChanged();

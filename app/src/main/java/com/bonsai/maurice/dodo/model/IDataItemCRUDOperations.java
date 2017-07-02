@@ -22,6 +22,7 @@ public interface IDataItemCRUDOperations {
 
     // D
     public boolean deleteDataItem(long id);
+    public boolean deleteAllDataItems();
 
 
 }

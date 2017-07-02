@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">DODO</string>
     <string name="hello_text">Hello Android!</string>
-    <string name="title_overview">Overview</string>
+    <string name="title_overview">YOUR DODOs</string>
     <string name="title_detailview">Detailview</string>
     <string name="title_activity_login">Sign in</string>
 

@@ -25,13 +25,31 @@ public class DataItemApplication extends Application implements IDataItemCRUDOpe
 
     @Override
     public void onCreate() {
-       // super.onCreate();
+        super.onCreate();
         Log.i(logger, "onCreate()");
         syncCRUDOperations = new SyncedDataItemCRUDOperationsImpl(this);
     }
 
     public IDataItemCRUDOperationsAsync getCRUDOperationsImpl() {
         return this;
+    }
+
+    @Override
+    public void syncDataItems(final CallbackFunction<Boolean> callback) {
+        new AsyncTask<Void, Void, Boolean>() {
+
+            @Override
+            protected Boolean doInBackground(Void... params) {
+
+                    SyncedDataItemCRUDOperationsImpl syncCrudOperations = (SyncedDataItemCRUDOperationsImpl) DataItemApplication.this.syncCRUDOperations;
+                    return syncCrudOperations.syncDataItems();
+                }
+
+                @Override
+            protected void onPostExecute (Boolean result) {
+                    callback.process(result);
+            }
+        }.execute();
     }
 
     @Override
