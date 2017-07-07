@@ -1,6 +1,8 @@
 package com.bonsai.maurice.dodo.model;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -69,6 +71,16 @@ public class SyncedDataItemCRUDOperationsImpl implements IDataItemCRUDOperations
         return false;
     }
 
+    @Override
+    public boolean authenticateUser(User user) {
+        boolean result = false;
+        setIsRemoteAvailable();
+        if(remoteAvailable){
+            result = remoteCRUD.authenticateUser(user);
+        }
+        return result;
+    }
+
 
     public boolean syncDataItems() {
         setIsRemoteAvailable();
@@ -116,7 +128,6 @@ public class SyncedDataItemCRUDOperationsImpl implements IDataItemCRUDOperations
         } catch(IOException e)  {
             this.remoteAvailable = false;
         }
-
     }
 
 }

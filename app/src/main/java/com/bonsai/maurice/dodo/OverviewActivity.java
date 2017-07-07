@@ -3,6 +3,7 @@ package com.bonsai.maurice.dodo;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Color;
 import android.icu.text.SimpleDateFormat;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -31,9 +32,12 @@ import com.bonsai.maurice.dodo.model.IDataItemCRUDOperationsAsync;
 import com.bonsai.maurice.dodo.model.LocalDataItemCRUDOperationsImpl;
 import com.bonsai.maurice.dodo.model.RemoteDataItemCRUDOperationsImpl;
 
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 public class OverviewActivity extends AppCompatActivity  {
@@ -49,6 +53,8 @@ public class OverviewActivity extends AppCompatActivity  {
     private View addItemAction;
     private ArrayAdapter<DataItem> listViewAdapter;
     private List<DataItem> itemsList = new ArrayList<DataItem>();
+
+    private SimpleDateFormat sdf;
 
     //private List<DataItem> items = Arrays.asList(new DataItem[]{new DataItem("Bla"),new DataItem("Dododoo"),new DataItem("mannomann"),new DataItem("test123")});
 
@@ -66,6 +72,8 @@ public class OverviewActivity extends AppCompatActivity  {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        sdf = new SimpleDateFormat("dd-MM-yyyy");
 
         // 1. select the view to be controlled
         setContentView(R.layout.activity_overview);
@@ -128,14 +136,35 @@ public class OverviewActivity extends AppCompatActivity  {
                 final DataItem item = getItem(position);
                // Log.i(logger, "creating view for position " + position + " and item: " +  item);
 
-                SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
                 String duedate = sdf.format(item.getDuedate());
 
                 viewHolder.itemNameView.setText(item.getName());
                 viewHolder.itemDoneView.setOnCheckedChangeListener(null);
                 viewHolder.itemDoneView.setChecked(item.getDone());
-                viewHolder.itemFavView.setVisibility(item.getFavourite() ? View.VISIBLE : View.INVISIBLE);
+                viewHolder.itemFavView.setOnCheckedChangeListener(null);
+                viewHolder.itemFavView.setChecked(item.getFavourite());
                 viewHolder.itemDuedateView.setText(duedate);
+
+                String today = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
+                Date date = null;
+                Date nowDate = null;
+                try {
+                    date = sdf.parse(duedate);
+                    nowDate = sdf.parse(today);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                long mDate = date.getTime();
+                long mToday = nowDate.getTime();
+                long check = mDate - mToday;
+                itemView.setBackgroundColor(Color.WHITE);
+                if (check <= 0)
+                    itemView.setBackgroundColor(Color.parseColor("#FFEEEE"));
+                if(item.getDone())
+                    itemView.setBackgroundColor(Color.parseColor("#40c6bebe"));
+
+
+
                 viewHolder.itemDoneView.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                     @Override
                     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -145,10 +174,27 @@ public class OverviewActivity extends AppCompatActivity  {
                             @Override
                             public void process(DataItem dataItem) {
                                 Toast.makeText(OverviewActivity.this,dataItem.getName() + " updated!",Toast.LENGTH_SHORT).show();
+                                sortByDone();
                             }
                         });
+                        listViewAdapter.notifyDataSetChanged();
                     }
+                });
 
+                viewHolder.itemFavView.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+                        item.setFavourite(isChecked);
+                        crudOperations.updateDataItem(item.getId(),item,new IDataItemCRUDOperationsAsync.CallbackFunction<DataItem>(){
+                            @Override
+                            public void process(DataItem dataItem) {
+                                Toast.makeText(OverviewActivity.this,dataItem.getName() + " updated!",Toast.LENGTH_SHORT).show();
+                                sortByDone();
+                            }
+                        });
+                        listViewAdapter.notifyDataSetChanged();
+                    }
                 });
 
                 return itemView;
@@ -183,8 +229,40 @@ public class OverviewActivity extends AppCompatActivity  {
 
     }
 
-
-
+    private void sortByDone() {
+        Collections.sort(itemsList, new Comparator<DataItem>() {
+            @RequiresApi(api = Build.VERSION_CODES.N)
+            @Override
+            public int compare(DataItem o1, DataItem o2) {
+                int result = String.valueOf(o1.getDone()).compareTo(String.valueOf(o2.getDone()));
+                if (result == 0){
+                    result = (String.valueOf(o1.getFavourite()).compareTo(String.valueOf(o2.getFavourite())))*(-1);
+                }
+                if (result == 0){
+                    Calendar savedDate = Calendar.getInstance();
+                    savedDate.setTimeInMillis(o1.getDuedate());
+                    String o1String = sdf.format(savedDate.getTime());
+                    savedDate.setTimeInMillis(o2.getDuedate());
+                    String o2String = sdf.format(savedDate.getTime());
+                    Date o1Date = null;
+                    Date o2Date = null;
+                    try {
+                        o1Date = sdf.parse(o1String);
+                        o2Date = sdf.parse(o2String);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    long m1Date = o1Date.getTime();
+                    long m2Date = o2Date.getTime();
+                    return Long.toString(m1Date).compareTo(Long.toString(m2Date));
+                }
+                else {
+                    return result;
+                }
+            }
+        });
+        this.listViewAdapter.notifyDataSetChanged();
+    }
 
 
     private void readItemsAndFillListView() {
@@ -199,7 +277,7 @@ public class OverviewActivity extends AppCompatActivity  {
                 for (DataItem item : result) {
                     addItemToListView(item);
                 }
-
+                sortByDone();
             }
         });
 
@@ -211,6 +289,7 @@ public class OverviewActivity extends AppCompatActivity  {
             @Override
             public void process(DataItem result) {
                 addItemToListView(result);
+                sortByDone();
                 progressDialog.hide();
             }
         });
@@ -308,7 +387,7 @@ public class OverviewActivity extends AppCompatActivity  {
         return super.onCreateOptionsMenu(menu);
     }
 
-    private void sortItems() {
+    private void sortItemsByName() {
         Collections.sort(itemsList, new Comparator<DataItem>() {
             @Override
             public int compare(DataItem o1, DataItem o2) {
@@ -318,14 +397,99 @@ public class OverviewActivity extends AppCompatActivity  {
         this.listViewAdapter.notifyDataSetChanged();
     }
 
+    private void sortItemsByDateFav() {
+        Collections.sort(itemsList, new Comparator<DataItem>() {
+            @RequiresApi(api = Build.VERSION_CODES.N)
+            @Override
+            public int compare(DataItem o1, DataItem o2) {
+                int result = String.valueOf(o1.getDone()).compareTo(String.valueOf(o2.getDone()));
+                if (result == 0){
+                    Calendar savedDate = Calendar.getInstance();
+                    savedDate.setTimeInMillis(o1.getDuedate());
+                    String o1String = sdf.format(savedDate.getTime());
+                    savedDate.setTimeInMillis(o2.getDuedate());
+                    String o2String = sdf.format(savedDate.getTime());
+                    Date o1Date = null;
+                    Date o2Date = null;
+                    try {
+                        o1Date = sdf.parse(o1String);
+                        o2Date = sdf.parse(o2String);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    long m1Date = o1Date.getTime();
+                    long m2Date = o2Date.getTime();
+                    result = Long.toString(m1Date).compareTo(Long.toString(m2Date));
+                }
+                if (result == 0){
+                    return (String.valueOf(o1.getFavourite()).compareTo(String.valueOf(o2.getFavourite())))*(-1);
+                }
+                else
+                    return result;
+            }
+        });
+        this.listViewAdapter.notifyDataSetChanged();
+    }
+    private void sortItemsByFavDate() {
+        Collections.sort(itemsList, new Comparator<DataItem>() {
+            @Override
+            public int compare(DataItem o1, DataItem o2) {
+                int result = String.valueOf(o1.getDone()).compareTo(String.valueOf(o2.getDone()));
+                if (result == 0){
+                    result = (String.valueOf(o1.getFavourite()).compareTo(String.valueOf(o2.getFavourite())))*(-1);
+                }
+                if(result == 0){
+                    Calendar savedDate = Calendar.getInstance();
+                    savedDate.setTimeInMillis(o1.getDuedate());
+                    String o1String = sdf.format(savedDate.getTime());
+                    savedDate.setTimeInMillis(o2.getDuedate());
+                    String o2String = sdf.format(savedDate.getTime());
+                    Date o1Date = null;
+                    Date o2Date = null;
+                    try {
+                        o1Date = sdf.parse(o1String);
+                        o2Date = sdf.parse(o2String);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    long m1Date = o1Date.getTime();
+                    long m2Date = o2Date.getTime();
+                    return Long.toString(m1Date).compareTo(Long.toString(m2Date));
+                }
+                else
+                    return result;
+            }
+        });
+        this.listViewAdapter.notifyDataSetChanged();
+    }
+
+
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.sortItems) {
-            sortItems();
+        if (item.getItemId() == R.id.sortItemsByName) {
+            sortItemsByName();
             return true;
 
-        } else {
+        }
+
+        if (item.getItemId() == R.id.sortItemsByDateFav) {
+            sortItemsByDateFav();
+            return true;
+
+        }
+
+        if (item.getItemId() == R.id.sortItemsByFavDate) {
+            sortItemsByFavDate();
+            return true;
+
+        }
+
+
+        else {
             return super.onOptionsItemSelected(item);
         }
     }
+
+
 }

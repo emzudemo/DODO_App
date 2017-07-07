@@ -2,8 +2,18 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <item android:id="@+id/sortItems"
-        android:title="SORT"
+    <item android:id="@+id/sortItemsByName"
+        android:title="Sort by Name"
         app:showAsAction="collapseActionView"
         />
+    <item android:id="@+id/sortItemsByDateFav"
+        android:title="Sort Date + Importance"
+        app:showAsAction="collapseActionView"
+        />
+    <item android:id="@+id/sortItemsByFavDate"
+        android:title="Sort by Importance + Date"
+        app:showAsAction="collapseActionView"
+        />
+
+
 </menu>

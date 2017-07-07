@@ -22,7 +22,12 @@ public interface IDataItemCRUDOperations {
 
     // D
     public boolean deleteDataItem(long id);
+
+    // D all
     public boolean deleteAllDataItems();
+
+    // User
+    public boolean authenticateUser(User user);
 
 
 }

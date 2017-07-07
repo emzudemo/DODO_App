@@ -43,6 +43,9 @@ public class RemoteDataItemCRUDOperationsImpl implements IDataItemCRUDOperations
         @DELETE("/api/todos/{id}")
         public Call<Boolean> deleteDataItem(@Path("id") long id);
 
+        @PUT("/api/users/auth")
+        public Call<Boolean> authenticateUser(@Body User user);
+
 
     }
 
@@ -87,7 +90,16 @@ public class RemoteDataItemCRUDOperationsImpl implements IDataItemCRUDOperations
     @Override
     public DataItem updateDataItem(long id, DataItem item) {
         try {
-            return this.webAPI.updateDataItem(id, item).execute().body();
+            DataItem apiItem = new DataItem();
+            apiItem.setId(item.getId());
+            apiItem.setName(item.getName());
+            apiItem.setDuedate(item.getDuedate());
+            apiItem.setDescription(item.getDescription());
+            apiItem.setDone(item.getDone());
+            apiItem.setFavourite(item.getFavourite());
+
+            this.webAPI.updateDataItem(id, apiItem).execute().body();
+            return item;
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -114,6 +126,17 @@ public class RemoteDataItemCRUDOperationsImpl implements IDataItemCRUDOperations
         return true;
         //TODO In welchem Fall soll true zurück gegeben werden?
         //TODO Error Handling
+    }
+
+    @Override
+    public boolean authenticateUser(User user) {
+        try {
+            boolean result = this.webAPI.authenticateUser(user).execute().body();
+            return result;
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 }
 

@@ -30,5 +30,7 @@ public interface IDataItemCRUDOperationsAsync {
         // D
         public void deleteDataItem(long id, CallbackFunction<Boolean> callback);
 
+        // User
+        public void authenticateUser(User user, CallbackFunction<Boolean> callback);
 
 }

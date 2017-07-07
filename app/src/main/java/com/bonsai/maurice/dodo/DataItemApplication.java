@@ -10,6 +10,7 @@ import com.bonsai.maurice.dodo.model.IDataItemCRUDOperationsAsync;
 import com.bonsai.maurice.dodo.model.LocalDataItemCRUDOperationsImpl;
 import com.bonsai.maurice.dodo.model.RemoteDataItemCRUDOperationsImpl;
 import com.bonsai.maurice.dodo.model.SyncedDataItemCRUDOperationsImpl;
+import com.bonsai.maurice.dodo.model.User;
 
 import java.util.List;
 
@@ -55,6 +56,7 @@ public class DataItemApplication extends Application implements IDataItemCRUDOpe
     @Override
     public void createDataItem(DataItem item, final CallbackFunction<DataItem> callback) {
         new AsyncTask<DataItem, Void,DataItem>() {
+
             @Override
             protected DataItem doInBackground(DataItem... params) {
                 return syncCRUDOperations.createDataItem(params[0]);
@@ -123,5 +125,19 @@ public class DataItemApplication extends Application implements IDataItemCRUDOpe
             }
         }.execute(id);
 
+    }
+
+    @Override
+    public void authenticateUser(User user, final CallbackFunction<Boolean> callback) {
+        new AsyncTask<User,Void,Boolean>() {
+            @Override
+            protected Boolean doInBackground(User... params) {
+                return syncCRUDOperations.authenticateUser(params[0]);
+            }
+            @Override
+            protected void onPostExecute(Boolean result) {
+                callback.process(result);
+            }
+        }.execute(user);
     }
 }

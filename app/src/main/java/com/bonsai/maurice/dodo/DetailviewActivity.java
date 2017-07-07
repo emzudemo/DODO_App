@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.icu.text.SimpleDateFormat;
@@ -14,6 +15,7 @@ import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
@@ -27,14 +29,19 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
+import com.bonsai.maurice.dodo.model.Contact;
 import com.bonsai.maurice.dodo.model.DataItem;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -70,6 +77,8 @@ public class DetailviewActivity extends AppCompatActivity {
     private Date date;
 
     private DataItem item;
+    private List<TextView> selectedContacts = new ArrayList<TextView>();
+    private LinearLayout layout;
 
     @RequiresApi(api = Build.VERSION_CODES.N)
     @Override
@@ -96,7 +105,7 @@ public class DetailviewActivity extends AppCompatActivity {
         itemDuedateText.setInputType(InputType.TYPE_NULL);
         itemDuetimeText = (EditText) findViewById(R.id.itemDuetime);
         itemDuetimeText.setInputType(InputType.TYPE_NULL);
-
+        layout = (LinearLayout) findViewById(R.id.layout);
 
 
         Calendar calendar = Calendar.getInstance();
@@ -140,8 +149,22 @@ public class DetailviewActivity extends AppCompatActivity {
             itemDuetimeText.setText(timeFormatter.format(savedDate.getTime()));
             itemFavStat.setChecked(item.getFavourite());
             itemDoneStat.setChecked(item.getDone());
+
+            List<Contact> contacts = item.getContacts();
+            for (Contact contact : contacts) {
+                long contactId = contact.getId();
+                if (contactId >= 0) {
+                    String uriString = "content://com.android.contacts/data/" + contactId;
+                    Uri uri = Uri.parse(uriString);
+                    Contact newContact = processSelectedContact(uri);
+                    contact.setName(newContact.getName());
+                }
+            }
+
             update = true;
+
         } else {
+            item = new DataItem();
             itemNameText.setText("No Name");
             itemDescriptionText.setText("No description");
             Calendar savedDate = Calendar.getInstance();
@@ -201,55 +224,61 @@ public class DetailviewActivity extends AppCompatActivity {
     private void saveItem() {
 
         String itemName = itemNameText.getText().toString();
-        String itemDescription = itemDescriptionText.getText().toString();
-
-        Boolean itemFav = itemFavStat.isChecked();
-        Boolean itemDone = itemDoneStat.isChecked();
-
-
-        String itemDuedate = itemDuedateText.getText().toString();
-        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
-        String itemDuetime = itemDuetimeText.getText().toString();
-        SimpleDateFormat stf = new SimpleDateFormat("HH:mm");
-        Date date = null;
-        Date time = null;
-
-        try {
-            date = sdf.parse(itemDuedate);
-            time = stf.parse(itemDuetime);
-        } catch (java.text.ParseException e) {
-            e.printStackTrace();
-        }
-
-
-        long millieDate = date.getTime();
-        long millieTime = time.getTime();
-
-        millieDate += millieTime;
-
-        Intent returnIntent = new Intent();
-
-        if(update){
-            item.setName(itemName);
-            item.setDescription(itemDescription);
-            item.setFavourite(itemFav);
-            item.setDone(itemDone);
-            item.setDuedate(millieDate);
-            returnIntent.putExtra(DATA_ITEM, item);
-            setResult(RESULT_UPDATE_ITEM, returnIntent);
-            finish();
+        if(itemName.length() == 0){
+            itemNameText.setError("Your DODO needs a name!");
         }
         else {
-            DataItem item = new DataItem(itemName);
-            item.setDescription(itemDescription);
-            item.setFavourite(itemFav);
-            item.setDone(itemDone);
-            item.setDuedate(millieDate);
-            returnIntent.putExtra(DATA_ITEM, item);
-            setResult(RESULT_OK, returnIntent);
-            finish();
-        }
+            String itemDescription = itemDescriptionText.getText().toString();
 
+            Boolean itemFav = itemFavStat.isChecked();
+            Boolean itemDone = itemDoneStat.isChecked();
+
+
+            String itemDuedate = itemDuedateText.getText().toString();
+            SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy");
+            String itemDuetime = itemDuetimeText.getText().toString();
+            SimpleDateFormat stf = new SimpleDateFormat("HH:mm");
+            Date date = null;
+            Date time = null;
+
+            try {
+                date = sdf.parse(itemDuedate);
+                time = stf.parse(itemDuetime);
+            } catch (java.text.ParseException e) {
+                e.printStackTrace();
+            }
+
+
+            long millieDate = date.getTime();
+            long millieTime = time.getTime();
+
+            millieDate += millieTime;
+
+            Intent returnIntent = new Intent();
+
+            if (update) {
+                item.setName(itemName);
+                item.setDescription(itemDescription);
+                item.setFavourite(itemFav);
+                item.setDone(itemDone);
+                item.setDuedate(millieDate);
+                returnIntent.putExtra(DATA_ITEM, item);
+                setResult(RESULT_UPDATE_ITEM, returnIntent);
+                finish();
+            } else {
+                if (item == null) {
+                    item = new DataItem();
+                }
+                item.setName(itemName);
+                item.setDescription(itemDescription);
+                item.setFavourite(itemFav);
+                item.setDone(itemDone);
+                item.setDuedate(millieDate);
+                returnIntent.putExtra(DATA_ITEM, item);
+                setResult(RESULT_OK, returnIntent);
+                finish();
+            }
+        }
     }
 
     private void deleteItem () {
@@ -275,8 +304,8 @@ public class DetailviewActivity extends AppCompatActivity {
             return true;
         }
         else if (item.getItemId() == R.id.deleteItem) {
-            deleteItem();
-            return true;
+            AlertDialog dialogBox = AskOption();
+            dialogBox.show();
         }
 
         else if (item.getItemId() == R.id.addContact) {
@@ -288,6 +317,7 @@ public class DetailviewActivity extends AppCompatActivity {
 
             return super.onOptionsItemSelected(item);
         }
+        return false;
     }
 
     private void addContact() {
@@ -299,36 +329,61 @@ public class DetailviewActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_PICK_CONTACT && resultCode == RESULT_OK) {
             Log.i("Detailview", "Got data from contact picker: " + data);
-            processSelectedContact(data.getData());
+            Contact contact = processSelectedContact(data.getData());
+            item.addContact(contact);
         }
     }
 
-    private void processSelectedContact(Uri uri) {
+    private Contact processSelectedContact(Uri uri) {
         Cursor cursor = getContentResolver().query(uri,null,null,null,null);
         cursor.moveToNext();
         String name = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
-        Log.i("Detailview", "Got name: " + name);
-
-        long contactId = cursor.getLong(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID));
-        Log.i("Detailview", "Got id: " + contactId);
-
-        Cursor phoneCursor = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,null,ContactsContract.CommonDataKinds.Phone.CONTACT_ID + "=?",new String[]{String.valueOf(contactId)},null);
-        if (phoneCursor.getCount() > 0) {
-            phoneCursor.moveToFirst();
-            do {
-                String phoneNumber = phoneCursor.getString(phoneCursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
-                int phoneNumberType = phoneCursor.getInt(phoneCursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DATA2));
-
-                Log.i("Detailview", "Got number: " + phoneNumber + " Phone Number Type: " + phoneNumberType);
-
-
-                if (phoneNumberType == ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE) {
-                    Log.i("Detailview", "Got MOBILE phone number: " + phoneNumber);
-                    break;
+        final TextView contactView = new TextView(this);
+        contactView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                TextView textView = (TextView)v;
+                String textViewText = textView.getText().toString();
+                List<Contact> contacts = item.getContacts();
+                for (int i = selectedContacts.size()-1; i>=0; i--){
+                    if (selectedContacts.get(i).getText().toString().equals(textViewText)){
+                        layout.removeViewInLayout(selectedContacts.get(i));
+                    }
                 }
+                for (int i = contacts.size() -1; i>=0; i--){
+                    if (contacts.get(i).getName().toString().equals(textViewText)){
+                        contacts.remove(contacts.get(i));
+                    }
+                }
+            }
+        });
+        contactView.setText(name);
+        layout.addView(contactView);
+        selectedContacts.add(contactView);
 
-            } while (phoneCursor.moveToNext());
-        }
+        long contactId = cursor.getLong(cursor.getColumnIndex(ContactsContract.RawContacts._ID));
+
+        return new Contact(contactId, name, "", "");
+    }
+
+    private AlertDialog AskOption()
+    {
+        AlertDialog myQuittingDialogBox =new AlertDialog.Builder(this)
+                .setTitle("Delete")
+                .setMessage("Do you want to Delete")
+                .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        deleteItem();
+                        dialog.dismiss();
+                    }
+                })
+                .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                })
+                .create();
+        return myQuittingDialogBox;
     }
 
 

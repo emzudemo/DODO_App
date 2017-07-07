@@ -24,7 +24,7 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
         db = context.openOrCreateDatabase("mydb.sqlite", Context.MODE_PRIVATE, null);
         if (db.getVersion() == 0) {
             db.setVersion(1);
-            db.execSQL("CREATE TABLE " + DATAITEMS + " (ID INTEGER PRIMARY KEY,NAME TEXT, DUEDATE INTEGER, DESCRIPTION TEXT, FAVOURITE INTEGER, DONE INTEGER)");
+            db.execSQL("CREATE TABLE " + DATAITEMS + " (ID INTEGER PRIMARY KEY,NAME TEXT, DUEDATE INTEGER, DESCRIPTION TEXT, FAVOURITE INTEGER, DONE INTEGER, CONTACTS TEXT)");
         }
     }
 
@@ -41,6 +41,21 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
         values.put("FAVOURITE", favourite);
         values.put("DONE", done);
 
+        List<Contact> contacts = item.getContacts();
+
+        if (contacts == null) {
+            contacts = new ArrayList<Contact>();
+        }
+
+        StringBuilder contactsBuilder = new StringBuilder();
+        for (Contact contact : contacts){
+            contactsBuilder.append(contact.getId()).append(",");
+        }
+        if (contactsBuilder.length()>0){
+            contactsBuilder.deleteCharAt(contactsBuilder.length()-1);
+        }
+        values.put("CONTACTS", contactsBuilder.toString());
+
         long id = db.insert(DATAITEMS,null,values);
         item.setId(id);
 
@@ -51,7 +66,7 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
     public List<DataItem> readAllDataItems() {
         List<DataItem> items = new ArrayList<DataItem>();
 
-        Cursor cursor = db.query(DATAITEMS, new String[]{"ID","NAME","DUEDATE","DESCRIPTION","FAVOURITE","DONE"},null,null,null,null,"ID");
+        Cursor cursor = db.query(DATAITEMS, new String[]{"ID","NAME","DUEDATE","DESCRIPTION","FAVOURITE","DONE", "CONTACTS"},null,null,null,null,"ID");
         if (cursor.getCount() > 0) {
             cursor.moveToFirst();
             boolean next = false;
@@ -65,6 +80,18 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
                 String description = cursor.getString(cursor.getColumnIndex("DESCRIPTION"));
                 int favourite = cursor.getInt(cursor.getColumnIndex("FAVOURITE"));
                 int done = cursor.getInt(cursor.getColumnIndex("DONE"));
+                String contacts = cursor.getString(cursor.getColumnIndex("CONTACTS"));
+                if (contacts == null){
+                    contacts = "";
+                }
+                if (contacts.length() > 0) {
+                    String[] contactsArray = contacts.split("\\,");
+                    for (String contactId : contactsArray){
+                        Contact contactItem = new Contact(Integer.parseInt(contactId),"","","");
+                        item.addContact(contactItem);
+                    }
+                }
+
 
                 item.setId(id);
                 item.setName(name);
@@ -76,7 +103,6 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
                 next = cursor.moveToNext();
             } while (next);
         }
-
         return items;
     }
 
@@ -99,6 +125,16 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
         values.put("FAVOURITE", favourite);
         values.put("DONE", done);
 
+        List<Contact> contacts = item.getContacts();
+        StringBuilder contactsBuilder = new StringBuilder();
+        for (Contact contact : contacts){
+            contactsBuilder.append(contact.getId()).append(",");
+        }
+        if (contactsBuilder.length()>0){
+            contactsBuilder.deleteCharAt(contactsBuilder.length()-1);
+        }
+        values.put("CONTACTS", contactsBuilder.toString());
+
         db.update(DATAITEMS,values,"ID=?",new String[]{String.valueOf(id)});
         return item;
     }
@@ -119,6 +155,11 @@ public class LocalDataItemCRUDOperationsImpl implements IDataItemCRUDOperations 
 
     @Override
     public boolean deleteAllDataItems() {
+        return false;
+    }
+
+    @Override
+    public boolean authenticateUser(User user) {
         return false;
     }
 

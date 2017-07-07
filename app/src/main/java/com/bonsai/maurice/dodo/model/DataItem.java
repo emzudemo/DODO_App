@@ -3,6 +3,7 @@ package com.bonsai.maurice.dodo.model;
 import com.google.gson.annotations.SerializedName;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -19,13 +20,16 @@ public class DataItem implements Serializable {
     private String description;
     private boolean favourite;
     private boolean done;
-    private List<String> contacts;
+
+    private List<Contact> contacts;
 
     public DataItem() {
+        this.contacts = new ArrayList<Contact>();
     }
 
     public DataItem(String name) {
         this.name = name;
+        this.contacts = new ArrayList<Contact>();
     }
 
     public String getName() {
@@ -68,12 +72,12 @@ public class DataItem implements Serializable {
         this.done = done;
     }
 
-    public List<String> getContacts() {
+    public List<Contact> getContacts() {
         return contacts;
     }
 
-    public void setContacts(List<String> contacts) {
-        this.contacts = contacts;
+    public void addContact(Contact contact) {
+        this.contacts.add(contact);
     }
 
     @Override
